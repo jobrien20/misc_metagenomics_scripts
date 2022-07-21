@@ -104,3 +104,11 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
         subprocess.call(multiqc_args)
 
    
+    def run_trimming(self, fastq_files):
+        trimming_directory = f"{self.configuration_dict['output_directory']}/trimmed_fastqs"
+        os.mkdir(trimming_directory)
+        trim_galore_args = ['trim_galore', ]
+
+
+
+workflow_manager(sys.argv[1])
