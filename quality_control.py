@@ -83,7 +83,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
         sample_paths_without_ext = [".".join(fastq.split(".")[:-1]) for fastq in self.initial_fastq_paths]
         sample_names = [path.split("/")[-1] for path in sample_paths_without_ext]
         
-        if self.configuration_dict['paired_or_unpaired'] == True:
+        if self.configuration_dict['paired_or_unpaired'] == 'paired':
             sample_names = self.get_pairs(sample_names)
        
         return sample_names
