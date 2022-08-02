@@ -102,7 +102,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
         forward_pair = self.configuration_dict['forward_pair']
         backward_pair = self.configuration_dict['backward_pair']
         unique_fastqs_dict = []
-        for fastq in self.sample_names:
+        for fastq in list_of_fastqs:
             if forward_pair in fastq:
                 
                 fastq_no_ext = fastq.replace(forward_pair, "")
