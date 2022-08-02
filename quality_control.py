@@ -1,6 +1,7 @@
 
 import yaml
 import os
+import os.path
 import subprocess
 import sys
 from subprocess import Popen, PIPE, STDOUT
@@ -133,7 +134,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
     def run_fastqc_and_multiqc(self, fastq_files):
         initial_fastqc_directory = f"{self.configuration_dict['output_directory']}/initial_fastqc_results"
         initial_multiqc_directory = f"{self.configuration_dict['output_directory']}initial_multiqc_results"
-        if os.isdir(initial_multiqc_directory) == True:
+        if os.path.isdir(initial_multiqc_directory) == True:
             return
         
         os.mkdir(initial_fastqc_directory)
