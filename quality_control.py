@@ -66,6 +66,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
 
     def __init__(self, dataset_path, configuration_dict):
         self.dataset_path = dataset_path
+        self.configuration_dict = configuration_dict
         self.initial_fastq_paths = self.get_fastq_paths()
         self.sample_names = self.get_sample_names()
 
