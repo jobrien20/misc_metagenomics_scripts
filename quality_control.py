@@ -32,7 +32,7 @@ class workflow_manager:
                     
                     else:
 
-                        config_dict[key] = value
+                        config_dict[key] = str(value)
         print(config_dict)
 
         return config_dict
