@@ -101,7 +101,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
     def get_pairs(self, list_of_fastqs):
         forward_pair = self.configuration_dict['forward_pair']
         backward_pair = self.configuration_dict['backward_pair']
-        unique_fastqs_dict = []
+        unique_fastqs_dict = {}
         for fastq in list_of_fastqs:
             if forward_pair in fastq:
                 
