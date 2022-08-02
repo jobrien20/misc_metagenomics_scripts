@@ -51,7 +51,7 @@ class workflow_manager:
         
         directory_of_datasets = self.config_dict['directory_of_datasets']
         if self.config_dict['single_or_multiple_datasets'] == 'single':
-            dataset(directory_of_datasets)
+            dataset(directory_of_datasets, self.config_dict)
 
         else:
             list_of_datasets = os.listdir(directory_of_datasets)
