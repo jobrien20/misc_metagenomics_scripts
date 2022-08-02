@@ -133,6 +133,8 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
     def run_fastqc_and_multiqc(self, fastq_files):
         initial_fastqc_directory = f"{self.configuration_dict['output_directory']}/initial_fastqc_results"
         initial_multiqc_directory = f"{self.configuration_dict['output_directory']}initial_multiqc_results"
+        if os.isdir(initial_multiqc_directory) == True:
+            return
         
         os.mkdir(initial_fastqc_directory)
         os.mkdir(initial_multiqc_directory)
@@ -149,7 +151,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
     def run_trimming(self):
         trimming_directory = f"{self.configuration_dict['output_directory']}/trimmed_fastqs"
         os.mkdir(trimming_directory)
-        if self.configuration_dict['paired_or_unpaired'] == 'Y':
+        if self.configuration_dict['paired_or_unpaired'] == 'Y' or self.configuration_dict['paired_or_unpaired'] == 'paired':
             for sample_name,fwd_and_bck in self.sample_names.items():
                 forward_sample = f"{self.dataset_path}/{fwd_and_bck[0]}"
                 backward_sample = f"{self.dataset_path}/{fwd_and_bck[1]}"
@@ -195,7 +197,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
                 fasta_comma_indented_string = f"{fasta_comma_indented_string},{fasta}"
 
 
-        subprocess.run(['bowtie2-build', '--threads', self.configuration_dict['avail_cpus'], fasta_comma_indented_string, fasta_directory]) 
+        subprocess.run(['bowtie2-build', '--threads', self.configuration_dict['threads'], fasta_comma_indented_string, fasta_directory]) 
 
     def run_bowtie_alignment(self, fastq_paths):
         
