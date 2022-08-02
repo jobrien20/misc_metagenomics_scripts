@@ -75,7 +75,9 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
     def run_workflow(self):
 
         self.run_fastqc_and_multiqc(self.initial_fastq_paths)
-
+        self.run_trimming()
+        self.run_merging()
+        self.build_genome_indices()
 
 
 
@@ -124,7 +126,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
 
                 unique_fastqs_dict[fastq_no_ext] = fastq_names
         
-        return unique_fastqs
+        return unique_fastqs_dict
 
 
     def run_fastqc_and_multiqc(self, fastq_files):
@@ -154,6 +156,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
                 trim_galore_args = ['trim_galore', '-q', self.configuration_dict['trim_phred_quality'], self.configuration_dict['minimum_read_length'], '--trim-n', '--cores', self.configuration_dict['threads'], '--output_dir', trimming_directory, '--paired', forward_sample, backward_sample]
                 subprocess.call(trim_galore_args)
         # trim_galore -q 20 --gzip --paired --length 50 --trim-n --output_dir --cores
+        self.dataset_path = trimming_directory
 
     def run_merging(self):
         merging_directory = f"{self.configuration_dict['output_directory']}/merged_fastqs"
@@ -167,6 +170,32 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
                 merge_args = ['NGmerge', '-m', self.configuration_dict['minimum_ngmerge_overlap'], '-p', self.configuration_dict['perc_mismatches_allowed_in_overlap'], '-1', forward_sample, '-2', backward_sample, '-o', merged_fastq_path]
                 subprocess.call(merge_args)
 
+    def build_genome_indices(self):
+        
+        build_file_extensions = [".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2"]
+        fasta_directory = os.listdir(self.configuration_dict['bowtie_host_directory'])
+        indice_count = 0
+        for extent in build_file_extensions:
+            for file in fasta_directory:
+                if extent in file:
+                    indice_count += 1
+                    break
+        if indice_count == 6:
+            return
+
+        files_in_dir = os.listdir(fasta_directory)
+        fastas_in_dir = [f"{fasta_directory}/{fastq}" for fastq in files_in_dir if fastq[-3:] == 'fna' or fastq[-5:] == 'fasta']
+
+        fasta_comma_indented_string = ""
+        if len(fastas_in_dir) == 1:
+            fasta_comma_indented_string = fastas_in_dir[0]
+        else:   
+            for fasta in fastas_in_dir:
+                fasta_comma_indented_string = f"{fasta_comma_indented_string},{fasta}"
+
+
+        subprocess.run(['bowtie2-build', '--threads', self.configuration_dict['avail_cpus'], fasta_comma_indented_string, fasta_directory]) 
+
     def run_bowtie_alignment(self, fastq_paths):
         
         bowtie_directory = f"{self.configuration_dict['results_directory']}/bowtie_alignment_directory"
@@ -179,7 +208,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
             fastq_name = fastq.split("/")[-1]
             unaligned_reads_path = f"{bowtie_directory}/bowtie_unaligned_{fastq_name}"
             sum_path = f"{summary_directory}/{fastq.split('.')[0]}_bowtie_sum.txt"
-            bowtie_args = ['bowtie2', '-x', self.configuration_dict['bowtie_host_indice_directory'], '-U', fastq, '--very-sensitive', '-p', self.configuration_dict['threads'], '>', unaligned_reads_path, '2>', sum_path]
+            bowtie_args = ['bowtie2', '-x', self.configuration_dict['bowtie_host_directory'], '-U', fastq, '--very-sensitive', '-p', self.configuration_dict['threads'], '>', unaligned_reads_path, '2>', sum_path]
             subprocess.call(bowtie_args)
 
 workflow_manager(sys.argv[1])
