@@ -135,7 +135,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
         initial_multiqc_directory = f"{self.configuration_dict['output_directory']}initial_multiqc_results"
         
         os.mkdir(initial_fastqc_directory)
-        os.mkdir(initial_fastqc_directory)
+        os.mkdir(initial_multiqc_directory)
 
         for fastq in fastq_files:
             fastqc_args = ['fastqc', fastq, '-threads', self.configuration_dict['threads'], '-outdir', initial_fastqc_directory]
