@@ -5,7 +5,7 @@ import os.path
 import subprocess
 import sys
 from subprocess import Popen, PIPE, STDOUT
-
+import shutil
 
 
 class workflow_manager:
@@ -157,8 +157,17 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
                 forward_sample = f"{self.dataset_path}/{fwd_and_bck[0]}"
                 backward_sample = f"{self.dataset_path}/{fwd_and_bck[1]}"
 
-                trim_galore_args = ['trim_galore', '-q', self.configuration_dict['trim_phred_quality'], self.configuration_dict['minimum_read_length'], '--trim-n', '--cores', self.configuration_dict['threads'], '--output_dir', trimming_directory, '--paired', forward_sample, backward_sample]
+
+                trim_galore_args = ['trim_galore', '-q', self.configuration_dict['trim_phred_quality'], self.configuration_dict['minimum_read_length'], '--trim-n', '--cores', self.configuration_dict['threads'], '--paired', forward_sample, backward_sample]
                 subprocess.call(trim_galore_args)
+
+            files = os.listdir(self.dataset_path)
+            trimmed_files = [file for file in files if "trimmed" in file]
+            for trimmed_file in trimmed_files:
+                orig_path = f"{self.dataset_path}/{trimmed_file}"
+                new_path = f"{trimming_directory}/{trimmed_file}"
+                shutil.move(orig_path, new_path)
+
         # trim_galore -q 20 --gzip --paired --length 50 --trim-n --output_dir --cores
         self.dataset_path = trimming_directory
 
