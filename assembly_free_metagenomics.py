@@ -70,12 +70,12 @@ class dataset: # dataset object with fastq paths and attributes to be added etc
         self.configuration_dict = configuration_dict
         self.initial_fastq_paths, self.fastq_ext = self.get_fastq_paths()
         self.sample_names = self.get_sample_names()
-        self.check_and_build_dbs()
+        self.metaphlan_db = self.check_and_build_dbs()
 
         self.run_workflow()
 
     def run_workflow(self):
-        print("hi")
+        self.run_metaphlan_taxonomy()
 
 
 
@@ -137,6 +137,24 @@ class dataset: # dataset object with fastq paths and attributes to be added etc
         
         return unique_fastqs_dict
 
+    def check_for_indices(self):
+        build_file_extensions = [".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2"]
+
+        indice_count = 0
+        host_indices = []
+        for extent in build_file_extensions:
+            for file in os.listdir(f"{self.configuration_dict['database_directory']}/metaphlan_db_directory"):
+                print(file)
+                if extent in file:
+                    indice_count += 1
+                    print("hi")
+                    if indice_count == 6:
+                        host_file_name = file.split("/")[-1].replace(extent, "")
+                        print("found all indices")
+                        return True
+                    break
+        return False
+
     def check_and_build_dbs(self):
         database_directory = self.configuration_dict['database_directory']
         try:
@@ -145,15 +163,45 @@ class dataset: # dataset object with fastq paths and attributes to be added etc
             "db dir already produced"
 
         metaphlan_directory = f"{database_directory}/metaphlan_db_directory"
+        indice_check = self.check_for_indices()
+
+
+
         try:
             os.mkdir(metaphlan_directory)
+
         except:
+
             "metaphlan dir already produced"
 
-        metaphlan_build_args = ['metaphlan', '--install' '--bowtie2db', metaphlan_directory]
+        if indice_check == True:
+            print("yep")
+            return metaphlan_directory
+
+        metaphlan_build_args = ['metaphlan', '--install', '--bowtie2db', metaphlan_directory]
         subprocess.call(metaphlan_build_args)
 
-
+        indice_check = self.check_for_indices()
+        if indice_check == False:
+            print("metaphlan db build failed. Exitting.")
+            exit()
 
 
         return metaphlan_directory
+
+    def run_metaphlan_taxonomy(self):
+        metaphlan_output_dir = f"{self.configuration_dict['output_directory']}/metaphlan_results_directory/"
+        try:
+            os.mkdir(metaphlan_output_dir)
+        except:
+            print("metaphlan output directory already produced.")
+        for sample_name in self.sample_names:
+            
+            sample_fastq_path = f"{self.dataset_path}/{sample_name}{self.fastq_ext}"
+            sample_metaphlan_path = f"{metaphlan_output_dir}/{sample_name}_metaphlan_output"
+
+            metaphlan_args = ['metaphlan', sample_fastq_path, '--input_type', 'fastq', '--bowtie2db', self.metaphlan_db, '-o', sample_metaphlan_path]
+            subprocess.call(metaphlan_args)
+        #metaphlan metagenome.fastq --input_type fastq -o profiled_metagenome.txt
+
+workflow_manager(sys.argv[1])

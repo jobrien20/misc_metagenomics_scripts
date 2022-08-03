@@ -280,10 +280,11 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
         
         for fastq in fastq_paths:
             
-            fastq_name = fastq.split("/")[-1]
-            unaligned_reads_path = f"{bowtie_directory}/bowtie_unaligned_{fastq_name}"
+            fastq_name = fastq.split("/")[-1].replace(self.fastq_ext, "")
+            unaligned_reads_path = f"{bowtie_directory}/bowtie_unaligned_{fastq_name}.fastq.gz"
+            extra_log_file = f"{bowtie_directory}/bowtie_unaligned_align_file_{fastq_name}"
             sum_path = f"{summary_directory}/{fastq_name.split('.')[0]}_bowtie_sum.txt"
-            bowtie_args = ['bowtie2', '-x', f"{self.configuration_dict['bowtie_host_directory']}/{self.host_indices}", '-U', fastq, '--very-sensitive', '-p', self.configuration_dict['threads'], '>', unaligned_reads_path, '2>', sum_path]
+            bowtie_args = ['bowtie2', '-x', f"{self.configuration_dict['bowtie_host_directory']}/{self.host_indices}", '-U', fastq, '--very-sensitive', '-p', self.configuration_dict['threads'], '--un-gz', unaligned_reads_path, '>', extra_log_file, '2>', sum_path]
             print(bowtie_args)
 
             subprocess.call(bowtie_args)
