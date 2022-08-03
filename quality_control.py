@@ -68,7 +68,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
     def __init__(self, dataset_path, configuration_dict):
         self.dataset_path = dataset_path
         self.configuration_dict = configuration_dict
-        self.initial_fastq_paths = self.get_fastq_paths()
+        self.initial_fastq_paths, self.fastq_ext = self.get_fastq_paths()
         self.sample_names = self.get_sample_names()
 
 
@@ -84,7 +84,9 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
 
 
     def get_sample_names(self):
-        sample_paths_without_ext = [".".join(fastq.split(".")[:-1]) for fastq in self.initial_fastq_paths]
+
+        sample_paths_without_ext = [fastq.replace(f"{self.fastq_ext}", "") for fastq in self.initial_fastq_paths]
+
         sample_names = [path.split("/")[-1] for path in sample_paths_without_ext]
         
         if self.configuration_dict['paired_or_unpaired'] == 'paired':
@@ -95,9 +97,17 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
     def get_fastq_paths(self):
         if self.configuration_dict['gzip_compressed'] == 'Y':
             fastq_paths = ["%s/%s" % (self.dataset_path, file) for file in os.listdir(self.dataset_path) if file[-9:] == '.fastq.gz' or file[-6:] == '.fq.gz']
+            fastq_ext = ""
         else:
             fastq_paths = ["%s/%s" % (self.dataset_path, file) for file in os.listdir(self.dataset_path) if file[-9:] == '.fastq' or file[-6:] == '.fq']
-        return fastq_paths
+            fastq_ext = ".gz"
+
+        if ".fastq" in fastq_paths[0]:
+            fastq_ext = ".fastq" + fastq_ext
+        else:
+            fastq_ext = ".fq" + fastq_ext
+
+        return fastq_paths, fastq_ext
 
     def get_pairs(self, list_of_fastqs):
         forward_pair = self.configuration_dict['forward_pair']
@@ -154,10 +164,10 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
         os.mkdir(trimming_directory)
         if self.configuration_dict['paired_or_unpaired'] == 'Y' or self.configuration_dict['paired_or_unpaired'] == 'paired':
             for sample_name,fwd_and_bck in self.sample_names.items():
-                forward_sample = f"{self.dataset_path}/{fwd_and_bck[0]}"
-                backward_sample = f"{self.dataset_path}/{fwd_and_bck[1]}"
-                print(forward_sample)
-                print(backward_sample)
+                
+                forward_sample = f"{self.dataset_path}/{fwd_and_bck[0]}{self.fastq_ext}"
+                backward_sample = f"{self.dataset_path}/{fwd_and_bck[1]}{self.fastq_ext}"
+
                 with open("temp.txt", "w") as file:
                     file.write(forward_sample)
                     file.write(backward_sample)
