@@ -156,6 +156,11 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
             for sample_name,fwd_and_bck in self.sample_names.items():
                 forward_sample = f"{self.dataset_path}/{fwd_and_bck[0]}"
                 backward_sample = f"{self.dataset_path}/{fwd_and_bck[1]}"
+                print(forward_sample)
+                print(backward_sample)
+                with open("temp.txt", "w") as file:
+                    file.write(forward_sample)
+                    file.write(backward_sample)
 
 
                 trim_galore_args = ['trim_galore', '-q', self.configuration_dict['trim_phred_quality'], self.configuration_dict['minimum_read_length'], '--trim-n', '--cores', self.configuration_dict['threads'], '--paired', forward_sample, backward_sample]
