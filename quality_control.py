@@ -70,8 +70,8 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
         self.configuration_dict = configuration_dict
         self.initial_fastq_paths, self.fastq_ext = self.get_fastq_paths()
         self.sample_names = self.get_sample_names()
-
-
+        
+        self.host_indices = self.build_genome_indices()
         self.run_workflow()
     
     def run_workflow(self):
@@ -79,7 +79,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
         self.run_fastqc_and_multiqc(self.initial_fastq_paths)
         self.run_trimming()
         self.run_merging()
-        self.build_genome_indices()
+        self.run_bowtie_alignment()
 
 
 
@@ -97,10 +97,10 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
     def get_fastq_paths(self):
         if self.configuration_dict['gzip_compressed'] == 'Y':
             fastq_paths = ["%s/%s" % (self.dataset_path, file) for file in os.listdir(self.dataset_path) if file[-9:] == '.fastq.gz' or file[-6:] == '.fq.gz']
-            fastq_ext = ""
+            fastq_ext = ".gz"
         else:
             fastq_paths = ["%s/%s" % (self.dataset_path, file) for file in os.listdir(self.dataset_path) if file[-9:] == '.fastq' or file[-6:] == '.fq']
-            fastq_ext = ".gz"
+            fastq_ext = ""
 
         if ".fastq" in fastq_paths[0]:
             fastq_ext = ".fastq" + fastq_ext
@@ -161,58 +161,82 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
    
     def run_trimming(self):
         trimming_directory = f"{self.configuration_dict['output_directory']}/trimmed_fastqs"
-        os.mkdir(trimming_directory)
+        try:
+            os.mkdir(trimming_directory)
+        except:
+            print("trim dir already there.")
         if self.configuration_dict['paired_or_unpaired'] == 'Y' or self.configuration_dict['paired_or_unpaired'] == 'paired':
             for sample_name,fwd_and_bck in self.sample_names.items():
                 
                 forward_sample = f"{self.dataset_path}/{fwd_and_bck[0]}{self.fastq_ext}"
                 backward_sample = f"{self.dataset_path}/{fwd_and_bck[1]}{self.fastq_ext}"
 
-                with open("temp.txt", "w") as file:
-                    file.write(forward_sample)
-                    file.write(backward_sample)
+                trimmed_forward = f"{trimming_directory}/{fwd_and_bck[0]}_trimmed{self.fastq_ext}"
+                trimmed_backward = f"{trimming_directory}/{fwd_and_bck[1]}_trimmed{self.fastq_ext}"
 
 
-                trim_galore_args = ['trim_galore', '-q', self.configuration_dict['trim_phred_quality'], self.configuration_dict['minimum_read_length'], '--trim-n', '--cores', self.configuration_dict['threads'], '--paired', forward_sample, backward_sample]
+                
+                trim_galore_args = ['trim_galore', '-q', self.configuration_dict['trim_phred_quality'], '--length', self.configuration_dict['minimum_read_length'], '--trim-n', '--cores', self.configuration_dict['threads'],
+                 '--output_dir', trimming_directory, '--paired', forward_sample, backward_sample]
+                
+                galore_trimmed_forward = f"{trimming_directory}/{fwd_and_bck[0]}_val_1.fq.gz"
+                galore_trimmed_backward = f"{trimming_directory}/{fwd_and_bck[1]}_val_2.fq.gz"
                 subprocess.call(trim_galore_args)
+                
+                shutil.move(galore_trimmed_forward, trimmed_forward)
+                shutil.move(galore_trimmed_backward, trimmed_backward)
+
+
 
             files = os.listdir(self.dataset_path)
             trimmed_files = [file for file in files if "trimmed" in file]
-            for trimmed_file in trimmed_files:
-                orig_path = f"{self.dataset_path}/{trimmed_file}"
-                new_path = f"{trimming_directory}/{trimmed_file}"
-                shutil.move(orig_path, new_path)
+
 
         # trim_galore -q 20 --gzip --paired --length 50 --trim-n --output_dir --cores
         self.dataset_path = trimming_directory
 
     def run_merging(self):
         merging_directory = f"{self.configuration_dict['output_directory']}/merged_fastqs"
-        os.mkdir(merging_directory)
+        try:
+            os.mkdir(merging_directory)
+        except:
+            print("merged directory already there.")
         for sample_name,fwd_and_bck in self.sample_names.items():
                 
-                forward_sample = f"{self.dataset_path}/{fwd_and_bck[0]}"
-                backward_sample = f"{self.dataset_path}/{fwd_and_bck[1]}"
-                merged_fastq_path = f"{merging_directory}/merged_{sample_name}"
+                forward_sample = f"{self.dataset_path}/{fwd_and_bck[0]}_trimmed{self.fastq_ext}"
+                backward_sample = f"{self.dataset_path}/{fwd_and_bck[1]}_trimmed{self.fastq_ext}"
+                merged_fastq_path = f"{merging_directory}/merged_{sample_name}{self.fastq_ext}"
 
                 merge_args = ['NGmerge', '-m', self.configuration_dict['minimum_ngmerge_overlap'], '-p', self.configuration_dict['perc_mismatches_allowed_in_overlap'], '-1', forward_sample, '-2', backward_sample, '-o', merged_fastq_path]
                 subprocess.call(merge_args)
 
-    def build_genome_indices(self):
-        
+    def check_for_indices_and_get_host_name(self):
         build_file_extensions = [".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2"]
-        fasta_directory = os.listdir(self.configuration_dict['bowtie_host_directory'])
+
         indice_count = 0
+        host_indices = []
         for extent in build_file_extensions:
-            for file in fasta_directory:
+            for file in os.listdir(self.configuration_dict['bowtie_host_directory']):
+                print(file)
                 if extent in file:
                     indice_count += 1
+                    print("hi")
+                    if indice_count == 6:
+                        host_file_name = file.split("/")[-1].replace(extent, "")
+                        print("found all indices")
+                        return host_file_name
                     break
-        if indice_count == 6:
-            return
+        return "No host indices found."
 
-        files_in_dir = os.listdir(fasta_directory)
-        fastas_in_dir = [f"{fasta_directory}/{fastq}" for fastq in files_in_dir if fastq[-3:] == 'fna' or fastq[-5:] == 'fasta']
+    def build_genome_indices(self):
+        
+        host_indices = self.check_for_indices_and_get_host_name()
+        if host_indices != "No host indices found":
+            return host_indices
+
+
+        files_in_dir = os.listdir(self.configuration_dict['bowtie_host_directory'])
+        fastas_in_dir = [f"{self.configuration_dict['bowtie_host_directory']}/{fastq}" for fastq in files_in_dir if fastq[-3:] == 'fna' or fastq[-5:] == 'fasta']
 
         fasta_comma_indented_string = ""
         if len(fastas_in_dir) == 1:
@@ -222,21 +246,46 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
                 fasta_comma_indented_string = f"{fasta_comma_indented_string},{fasta}"
 
 
-        subprocess.run(['bowtie2-build', '--threads', self.configuration_dict['threads'], fasta_comma_indented_string, fasta_directory]) 
+        bowtie_args = ['bowtie2-build', '--threads', self.configuration_dict['threads'], fasta_comma_indented_string, self.configuration_dict['bowtie_host_directory']]
 
-    def run_bowtie_alignment(self, fastq_paths):
+        subprocess.call(bowtie_args)
+
+        host_indices = self.check_for_indices_and_get_host_name()
+        if host_indices == "No host indices found":
+            print("bowtie 2 build fail.")
+            exit()
+        return host_indices
+
+    def run_bowtie_alignment(self):
         
-        bowtie_directory = f"{self.configuration_dict['results_directory']}/bowtie_alignment_directory"
-        os.mkdir(bowtie_directory)
+        bowtie_directory = f"{self.configuration_dict['output_directory']}/bowtie_alignment_directory"
+        try:
+            os.mkdir(bowtie_directory)
+        except:
+            print("bowtie dir found")
+        
         summary_directory = f"{bowtie_directory}/results_summaries"
-        os.mkdir(summary_directory)
+        try:
+            os.mkdir(summary_directory)
+        except:
+            print("summary dir found")
+        if self.configuration_dict['paired_or_unpaired'] == 'paired':
+            fastq_directory = f"{self.configuration_dict['output_directory']}/merged_fastqs"
+            files = os.listdir(fastq_directory)
+            fastq_paths = [f"{fastq_directory}/{file}" for file in files if f"{self.fastq_ext}" in file]
+        else:
+            
+            fastq_directory = f"{self.configuraiton_dict['output_directory']}/trimmed_fastqs"
+            fastq_paths = [f"{fastq_directory}/{file}" for file in files if f"{self.fastq_ext}" in file]
         
         for fastq in fastq_paths:
             
             fastq_name = fastq.split("/")[-1]
             unaligned_reads_path = f"{bowtie_directory}/bowtie_unaligned_{fastq_name}"
-            sum_path = f"{summary_directory}/{fastq.split('.')[0]}_bowtie_sum.txt"
-            bowtie_args = ['bowtie2', '-x', self.configuration_dict['bowtie_host_directory'], '-U', fastq, '--very-sensitive', '-p', self.configuration_dict['threads'], '>', unaligned_reads_path, '2>', sum_path]
+            sum_path = f"{summary_directory}/{fastq_name.split('.')[0]}_bowtie_sum.txt"
+            bowtie_args = ['bowtie2', '-x', f"{self.configuration_dict['bowtie_host_directory']}/{self.host_indices}", '-U', fastq, '--very-sensitive', '-p', self.configuration_dict['threads'], '>', unaligned_reads_path, '2>', sum_path]
+            print(bowtie_args)
+
             subprocess.call(bowtie_args)
 
 workflow_manager(sys.argv[1])
