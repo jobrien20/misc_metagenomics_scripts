@@ -231,7 +231,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
     def build_genome_indices(self):
         
         host_indices = self.check_for_indices_and_get_host_name()
-        if host_indices != "No host indices found":
+        if host_indices != "No host indices found.":
             return host_indices
 
 
@@ -251,7 +251,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
         subprocess.call(bowtie_args)
 
         host_indices = self.check_for_indices_and_get_host_name()
-        if host_indices == "No host indices found":
+        if host_indices == "No host indices found.":
             print("bowtie 2 build fail.")
             exit()
         return host_indices
@@ -282,10 +282,21 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
             
             fastq_name = fastq.split("/")[-1].replace(self.fastq_ext, "")
             unaligned_reads_path = f"{bowtie_directory}/bowtie_unaligned_{fastq_name}.fastq.gz"
-            extra_log_file = f"{bowtie_directory}/bowtie_unaligned_align_file_{fastq_name}"
+            sam_file = f"{bowtie_directory}/bowtie_unaligned_align_file_{fastq_name}.sam"
             sum_path = f"{summary_directory}/{fastq_name.split('.')[0]}_bowtie_sum.txt"
-            bowtie_args = ['bowtie2', '-x', f"{self.configuration_dict['bowtie_host_directory']}/{self.host_indices}", '-U', fastq, '--very-sensitive', '-p', self.configuration_dict['threads'], '--un-gz', unaligned_reads_path, '>', extra_log_file, '2>', sum_path]
+            if ".gz" in fastq:
+                subprocess.call(['gunzip', '-q', '-f', fastq])
+                fastq = fastq[:-3]
+
+
+
+            # bowtie2 -x testing_workflow_script/host_genomes/bovine/bovine --very-sensitive -p 6 -U testing_workflow_script/fastq_directory/merged_fastqs/merged_test_paired_cow.fastq --un testing.fastq
+            bowtie_args = ['bowtie2', '-x', f"{self.configuration_dict['bowtie_host_directory']}/{self.host_indices}", '--very-sensitive', '-p', self.configuration_dict['threads'], '-U', fastq, '--un-gz', unaligned_reads_path, '--met-file', sum_path]
             print(bowtie_args)
+            if ".gz" in fastq:
+                subprocess.call(['gzip', '-q', fastq])
+                
+
 
             subprocess.call(bowtie_args)
 
