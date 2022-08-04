@@ -96,7 +96,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc
             fastq_paths = ["%s/%s" % (self.dataset_path, file) for file in os.listdir(self.dataset_path) if file[-9:] == '.fastq.gz' or file[-6:] == '.fq.gz']
             fastq_ext = ".gz"
         else:
-            fastq_paths = ["%s/%s" % (self.dataset_path, file) for file in os.listdir(self.dataset_path) if file[-9:] == '.fastq' or file[-6:] == '.fq']
+            fastq_paths = ["%s/%s" % (self.dataset_path, file) for file in os.listdir(self.dataset_path) if file[-6:] == '.fastq' or file[-3:] == '.fq']
             fastq_ext = ""
 
         if ".fastq" in fastq_paths[0]:
@@ -190,6 +190,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc
         return metaphlan_directory
 
     def run_metaphlan_taxonomy(self):
+        print("running metaphlan taxonomy")
         metaphlan_output_dir = f"{self.configuration_dict['output_directory']}/metaphlan_results_directory/"
         try:
             os.mkdir(metaphlan_output_dir)
@@ -199,6 +200,8 @@ class dataset: # dataset object with fastq paths and attributes to be added etc
             
             sample_fastq_path = f"{self.dataset_path}/{sample_name}{self.fastq_ext}"
             sample_metaphlan_path = f"{metaphlan_output_dir}/{sample_name}_metaphlan_output"
+            print(sample_fastq_path)
+            print(sample_metaphlan_path)
 
             metaphlan_args = ['metaphlan', sample_fastq_path, '--input_type', 'fastq', '--bowtie2db', self.metaphlan_db, '-o', sample_metaphlan_path]
             subprocess.call(metaphlan_args)

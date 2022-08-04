@@ -99,7 +99,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
             fastq_paths = ["%s/%s" % (self.dataset_path, file) for file in os.listdir(self.dataset_path) if file[-9:] == '.fastq.gz' or file[-6:] == '.fq.gz']
             fastq_ext = ".gz"
         else:
-            fastq_paths = ["%s/%s" % (self.dataset_path, file) for file in os.listdir(self.dataset_path) if file[-9:] == '.fastq' or file[-6:] == '.fq']
+            fastq_paths = ["%s/%s" % (self.dataset_path, file) for file in os.listdir(self.dataset_path) if file[-6:] == '.fastq' or file[-3:] == '.fq']
             fastq_ext = ""
 
         if ".fastq" in fastq_paths[0]:
