@@ -75,11 +75,18 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
         self.run_workflow()
     
     def run_workflow(self):
+        initial_fastqc_directory = f"{self.configuration_dict['output_directory']}/initial_fastqc_results"
+        initial_multiqc_directory = f"{self.configuration_dict['output_directory']}initial_multiqc_results"
 
-        self.run_fastqc_and_multiqc(self.initial_fastq_paths)
+        self.run_fastqc_and_multiqc(self.initial_fastq_paths, initial_fastqc_directory, initial_multiqc_directory)
         self.run_trimming()
         self.run_merging()
-        self.run_bowtie_alignment()
+        unaligned_reads = self.run_bowtie_alignment()
+
+        final_fastqc_directory = f"{self.configuration_dict['output_directory']}/final_fastqc_results"
+        final_multiqc_directory = f"{self.configuration_dict['output_directory']}/final_multiqc_results"
+
+        self.run_fastqc_and_multiqc(unaligned_reads, final_fastqc_directory, final_multiqc_directory)
 
 
 
@@ -141,20 +148,19 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
         return unique_fastqs_dict
 
 
-    def run_fastqc_and_multiqc(self, fastq_files):
-        initial_fastqc_directory = f"{self.configuration_dict['output_directory']}/initial_fastqc_results"
-        initial_multiqc_directory = f"{self.configuration_dict['output_directory']}initial_multiqc_results"
-        if os.path.isdir(initial_multiqc_directory) == True:
+    def run_fastqc_and_multiqc(self, fastq_files, fastqc_directory, multiqc_directory):
+
+        if os.path.isdir(multiqc_directory) == True:
             return
         
-        os.mkdir(initial_fastqc_directory)
-        os.mkdir(initial_multiqc_directory)
+        os.mkdir(fastqc_directory)
+        os.mkdir(multiqc_directory)
 
         for fastq in fastq_files:
-            fastqc_args = ['fastqc', fastq, '-threads', self.configuration_dict['threads'], '-outdir', initial_fastqc_directory]
+            fastqc_args = ['fastqc', fastq, '-threads', self.configuration_dict['threads'], '-outdir', fastqc_directory]
             subprocess.call(fastqc_args)
         
-        multiqc_args = ['multiqc', initial_fastqc_directory, '-o', initial_multiqc_directory]
+        multiqc_args = ['multiqc', fastqc_directory, '-o', multiqc_directory]
 
         subprocess.call(multiqc_args)
 
@@ -182,7 +188,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
                 galore_trimmed_forward = f"{trimming_directory}/{fwd_and_bck[0]}_val_1.fq.gz"
                 galore_trimmed_backward = f"{trimming_directory}/{fwd_and_bck[1]}_val_2.fq.gz"
                 subprocess.call(trim_galore_args)
-                
+
                 shutil.move(galore_trimmed_forward, trimmed_forward)
                 shutil.move(galore_trimmed_backward, trimmed_backward)
 
@@ -208,8 +214,9 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
                 merged_fastq_path = f"{merging_directory}/merged_{sample_name}{self.fastq_ext}"
                 unmerged_forward = f"{merging_directory}/unmerged_{sample_name}_1{self.fastq_ext}"
                 unmerged_backward = f"{merging_directory}/unmerged_{sample_name}_2{self.fastq_ext}"
+                unmerged_path = f"{merging_directory}/unmerged_{sample_name}"
 
-                merge_args = ['NGmerge', '-m', self.configuration_dict['minimum_ngmerge_overlap'], '-p', self.configuration_dict['perc_mismatches_allowed_in_overlap'], '-1', forward_sample, '-2', backward_sample, '-o', merged_fastq_path, '-f', unmerged_forward, unmerged_backward]
+                merge_args = ['NGmerge', '-m', self.configuration_dict['minimum_ngmerge_overlap'], '-p', self.configuration_dict['perc_mismatches_allowed_in_overlap'], '-z', '-1', forward_sample, '-2', backward_sample, '-o', merged_fastq_path, '-f', unmerged_path]
                 subprocess.call(merge_args)
 
     def check_for_indices_and_get_host_name(self):
@@ -271,6 +278,8 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
             os.mkdir(summary_directory)
         except:
             print("summary dir found")
+
+
         if self.configuration_dict['paired_or_unpaired'] == 'paired':
             fastq_directory = f"{self.configuration_dict['output_directory']}/merged_fastqs"
             files = os.listdir(fastq_directory)
@@ -279,7 +288,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
             
             fastq_directory = f"{self.configuraiton_dict['output_directory']}/trimmed_fastqs"
             fastq_paths = [f"{fastq_directory}/{file}" for file in files if f"{self.fastq_ext}" in file]
-        
+        final_unaligned_reads = []
         for fastq in fastq_paths:
             
             fastq_name = fastq.split("/")[-1].replace(self.fastq_ext, "")
@@ -301,5 +310,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
 
 
             subprocess.call(bowtie_args)
+            final_unaligned_reads.append(unaligned_reads_path)
+        return final_unaligned_reads
 
 workflow_manager(sys.argv[1])
