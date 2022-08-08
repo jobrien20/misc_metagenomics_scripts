@@ -227,7 +227,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
                 unmerged_backward = f"{merging_directory}/unmerged_{sample_name}_2{self.fastq_ext}"
                 unmerged_path = f"{merging_directory}/unmerged_{sample_name}"
 
-                merge_args = ['NGmerge', '-m', self.configuration_dict['minimum_ngmerge_overlap'], '-p', self.configuration_dict['perc_mismatches_allowed_in_overlap'], '-z', '-1', forward_sample, '-2', backward_sample, '-o', merged_fastq_path, '-f', unmerged_path]
+                merge_args = ['NGmerge', '-n', self.configuration_dict['threads'], '-m', self.configuration_dict['minimum_ngmerge_overlap'], '-p', self.configuration_dict['perc_mismatches_allowed_in_overlap'], '-z', '-1', forward_sample, '-2', backward_sample, '-o', merged_fastq_path, '-f', unmerged_path]
                 subprocess.call(merge_args)
 
     def check_for_indices_and_get_host_name(self):
