@@ -108,9 +108,12 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
         else:
             fastq_paths = ["%s/%s" % (self.dataset_path, file) for file in os.listdir(self.dataset_path) if file[-6:] == '.fastq' or file[-3:] == '.fq']
             fastq_ext = ""
+        print(fastq_paths[0])
 
         if ".fastq" in fastq_paths[0]:
             fastq_ext = ".fastq" + fastq_ext
+            print("correct")
+
         else:
             fastq_ext = ".fq" + fastq_ext
 
@@ -150,7 +153,7 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
 
     def run_fastqc_and_multiqc(self, fastq_files, fastqc_directory, multiqc_directory):
 
-        if os.path.isdir(multiqc_directory) == True:
+        if os.path.isdir(multiqc_directory) == True and os.path.isdir(fastqc_directory) == True:
             return
         
         os.mkdir(fastqc_directory)
@@ -167,6 +170,12 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
    
     def run_trimming(self):
         trimming_directory = f"{self.configuration_dict['output_directory']}/trimmed_fastqs"
+        if self.configuration_dict['run_trimming'] == 'N' or self.configuration_dict['run_trimming'] == 'n':
+            self.dataset_path = trimming_directory
+            print("skipping trimmin")
+            return
+
+        
         try:
             os.mkdir(trimming_directory)
         except:
@@ -185,11 +194,15 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
                 trim_galore_args = ['trim_galore', '-q', self.configuration_dict['trim_phred_quality'], '--length', self.configuration_dict['minimum_read_length'], '--trim-n', '--cores', self.configuration_dict['threads'],
                  '--output_dir', trimming_directory, '--paired', forward_sample, backward_sample]
                 
-                galore_trimmed_forward = f"{trimming_directory}/{fwd_and_bck[0]}_val_1.fastq.gz"
-                galore_trimmed_backward = f"{trimming_directory}/{fwd_and_bck[1]}_val_2.fastq.gz"
+                galore_trimmed_forward = f"{trimming_directory}/{fwd_and_bck[0]}_val_1.fq.gz"
+                galore_trimmed_backward = f"{trimming_directory}/{fwd_and_bck[1]}_val_2.fq.gz"
+
                 subprocess.call(trim_galore_args)
-
-
+                try:
+                    shutil.move(galore_trimmed_forward, trimmed_forward)
+                    shutil.move(galore_trimmed_backward, trimmed_backward)
+                except:
+                    print("cont.")
 
 
             files = os.listdir(self.dataset_path)
