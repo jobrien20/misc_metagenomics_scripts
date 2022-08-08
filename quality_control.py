@@ -185,12 +185,10 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
                 trim_galore_args = ['trim_galore', '-q', self.configuration_dict['trim_phred_quality'], '--length', self.configuration_dict['minimum_read_length'], '--trim-n', '--cores', self.configuration_dict['threads'],
                  '--output_dir', trimming_directory, '--paired', forward_sample, backward_sample]
                 
-                galore_trimmed_forward = f"{trimming_directory}/{fwd_and_bck[0]}_val_1.fq.gz"
-                galore_trimmed_backward = f"{trimming_directory}/{fwd_and_bck[1]}_val_2.fq.gz"
+                galore_trimmed_forward = f"{trimming_directory}/{fwd_and_bck[0]}_val_1.fastq.gz"
+                galore_trimmed_backward = f"{trimming_directory}/{fwd_and_bck[1]}_val_2.fastq.gz"
                 subprocess.call(trim_galore_args)
 
-                shutil.move(galore_trimmed_forward, trimmed_forward)
-                shutil.move(galore_trimmed_backward, trimmed_backward)
 
 
 
