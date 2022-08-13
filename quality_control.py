@@ -6,7 +6,7 @@ import subprocess
 import sys
 from subprocess import Popen, PIPE, STDOUT
 import shutil
-
+from os.path import exists
 
 class workflow_manager:
     required_configurations = ['directory_of_datasets', 'single_or_multiple_datasets']
@@ -226,7 +226,10 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
                 unmerged_forward = f"{merging_directory}/unmerged_{sample_name}_1{self.fastq_ext}"
                 unmerged_backward = f"{merging_directory}/unmerged_{sample_name}_2{self.fastq_ext}"
                 unmerged_path = f"{merging_directory}/unmerged_{sample_name}"
-
+                
+                if exists(merged_fastq_path) == True:
+                    continue
+                
                 merge_args = ['NGmerge', '-n', self.configuration_dict['threads'], '-m', self.configuration_dict['minimum_ngmerge_overlap'], '-p', self.configuration_dict['perc_mismatches_allowed_in_overlap'], '-z', '-1', forward_sample, '-2', backward_sample, '-o', merged_fastq_path, '-f', unmerged_path]
                 subprocess.call(merge_args)
 
