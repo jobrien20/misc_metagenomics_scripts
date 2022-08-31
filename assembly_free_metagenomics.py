@@ -203,7 +203,8 @@ class dataset: # dataset object with fastq paths and attributes to be added etc
             print(sample_fastq_path)
             print(sample_metaphlan_path)
 
-            metaphlan_args = ['metaphlan', sample_fastq_path, '--nproc', self.configuration_dict['threads'], '--input_type', 'fastq', '--bowtie2db', self.metaphlan_db, '-o', sample_metaphlan_path]
+            metaphlan_args = ['metaphlan', sample_fastq_path, '--nproc', str(self.configuration_dict['threads']),'--input_type', 'fastq', '--bowtie2db', self.metaphlan_db, '-o', sample_metaphlan_path]
+        
             subprocess.call(metaphlan_args)
         #metaphlan metagenome.fastq --input_type fastq -o profiled_metagenome.txt
 
