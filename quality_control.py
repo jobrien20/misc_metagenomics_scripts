@@ -311,7 +311,8 @@ class dataset: # dataset object with fastq paths and attributes to be added etc.
             sum_path = f"{summary_directory}/{fastq_name.split('.')[0]}_bowtie_sum.txt"
 
 
-
+            if exists(unaligned_reads_path) == True:
+                continue
 
             # bowtie2 -x testing_workflow_script/host_genomes/bovine/bovine --very-sensitive -p 6 -U testing_workflow_script/fastq_directory/merged_fastqs/merged_test_paired_cow.fastq --un testing.fastq
             bowtie_args = ['bowtie2', '-x', f"{self.configuration_dict['bowtie_host_directory']}/{self.host_indices}", '--very-sensitive', '-p', self.configuration_dict['threads'], '-U', fastq, '--un-gz', unaligned_reads_path, '--met-file', sum_path]
